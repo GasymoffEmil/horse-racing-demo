@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "test": "jest --config jest.config.cjs"
+    "test": "jest --config jest.config.cjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "vue": "^3.5.30",
@@ -22,6 +25,7 @@
     "Safari >= 12"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/jest": "^29.5.14",
     "@types/node": "^24.12.0",
     "@vitejs/plugin-vue": "^6.0.5",
