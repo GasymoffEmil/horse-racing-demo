@@ -3,10 +3,11 @@
 		<div class="horse-lane__number">{{ laneNumber }}</div>
 		<div class="horse-lane__track" ref="track">
 			<div class="horse-lane__horse" :style="{ left: horseLeftPercent }">
-				<HorseIcon :color="horse.color" :size="66" :animated="isRunning && progress < 100" />
+				<HorseIcon :color="horse.color" :size="horseSize" :animated="isRunning && progress < 100" />
 			</div>
 			<div class="horse-lane__finish-line" ></div>
 		</div>
+		<div :style="{width: `${horseSize}px`}" class="horse-lane__finish"></div>
 	</div>
 </template>
 
@@ -19,6 +20,11 @@ import { HorseIcon } from '@/entities/horse'
 export default defineComponent({
 	name: 'HorseLane',
 	components: { HorseIcon },
+	data() {
+		return {
+			horseSize: 90, // Horse Size in pixels
+		}
+	},
 	props: {
 		horse: {
 			type: Object as PropType<Horse>,
@@ -39,9 +45,7 @@ export default defineComponent({
 	},
 	computed: {
 		horseLeftPercent(): string {
-			// Reserve last 6% for the finish line area, horse moves from 0 to 94%
-			const maxLeft = 90
-			return `${(this.progress / 100) * maxLeft}%`
+			return `${this.progress}%`
 		},
 	},
 })
@@ -79,7 +83,6 @@ export default defineComponent({
 	position: relative;
 	flex: 1;
 	height: 100%;
-	overflow: hidden;
 }
 
 .horse-lane__horse {
@@ -92,7 +95,7 @@ export default defineComponent({
 
 .horse-lane__finish-line {
 	position: absolute;
-	right: 6%;
+	right: 0;
 	top: 0;
 	bottom: 0;
 	width: 3px;
@@ -102,5 +105,9 @@ export default defineComponent({
 			#fff 6px,
 			#fff 12px);
 	z-index: 1;
+}
+
+.horse-lane__finish{
+	height: 100%;
 }
 </style>
