@@ -4,7 +4,7 @@
 			<h1 class="game-page__title">Horse Racing</h1>
 			<div class="game-page__actions">
 				<AppButton variant="secondary" :disabled="isRunning" @click="onGenerate">
-					Generate Program
+					Generate
 				</AppButton>
 				<AppButton variant="primary" :disabled="!hasSchedule" @click="onToggleRace">
 					{{ startButtonLabel }}
@@ -13,15 +13,24 @@
 		</header>
 
 		<main class="game-page__body">
-			<section class="game-page__panel game-page__panel--horses">
+			<section
+				class="game-page__panel game-page__panel--horses"
+				:class="{ 'game-page__panel--active': activeTab === 'horses' }"
+			>
 				<HorseListWidget />
 			</section>
 
-			<section class="game-page__panel game-page__panel--track">
+			<section
+				class="game-page__panel game-page__panel--track"
+				:class="{ 'game-page__panel--active': activeTab === 'track' }"
+			>
 				<RaceTrackWidget />
 			</section>
 
-			<section class="game-page__panel game-page__panel--info">
+			<section
+				class="game-page__panel game-page__panel--info"
+				:class="{ 'game-page__panel--active': activeTab === 'info' }"
+			>
 				<div class="game-page__info-top">
 					<RaceProgramWidget />
 				</div>
@@ -30,6 +39,30 @@
 				</div>
 			</section>
 		</main>
+
+		<nav class="game-page__tab-bar">
+			<button
+				class="game-page__tab"
+				:class="{ 'game-page__tab--active': activeTab === 'track' }"
+				@click="activeTab = 'track'"
+			>
+				Race
+			</button>
+			<button
+				class="game-page__tab"
+				:class="{ 'game-page__tab--active': activeTab === 'horses' }"
+				@click="activeTab = 'horses'"
+			>
+				Horses
+			</button>
+			<button
+				class="game-page__tab"
+				:class="{ 'game-page__tab--active': activeTab === 'info' }"
+				@click="activeTab = 'info'"
+			>
+				Info
+			</button>
+		</nav>
 	</div>
 </template>
 
@@ -49,6 +82,11 @@ export default defineComponent({
 		RaceProgramWidget,
 		RaceResultsWidget,
 		AppButton,
+	},
+	data() {
+		return {
+			activeTab: 'track' as 'track' | 'horses' | 'info',
+		}
 	},
 	computed: {
 		hasSchedule(): boolean {
@@ -94,10 +132,12 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
+// ── Base (all sizes) ────────────────────────────────────────────────────────
+
 .game-page {
 	display: flex;
 	flex-direction: column;
-	height: 100vh;
+	height: 100dvh; // dynamic viewport height — avoids mobile browser chrome
 	background: #f0f0f0;
 	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -110,6 +150,7 @@ export default defineComponent({
 	background: #e74c3c;
 	color: white;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+	flex-shrink: 0;
 }
 
 .game-page__title {
@@ -150,5 +191,110 @@ export default defineComponent({
 	flex: 1;
 	min-height: 0;
 	overflow: hidden;
+}
+
+// Tab bar hidden on desktop
+.game-page__tab-bar {
+	display: none;
+}
+
+// ── Tablet (768px – 1023px) ─────────────────────────────────────────────────
+
+@media (max-width: 1023px) {
+	.game-page__body {
+		grid-template-columns: 200px 1fr;
+		grid-template-rows: 1fr 210px;
+		grid-template-areas:
+			"horses track"
+			"horses info";
+	}
+
+	.game-page__panel--horses {
+		grid-area: horses;
+	}
+
+	.game-page__panel--track {
+		grid-area: track;
+	}
+
+	.game-page__panel--info {
+		grid-area: info;
+		flex-direction: row; // program | results side by side
+		gap: 8px;
+	}
+}
+
+// ── Mobile (< 768px) ────────────────────────────────────────────────────────
+
+@media (max-width: 767px) {
+	.game-page__header {
+		padding: 10px 14px;
+		gap: 8px;
+	}
+
+	.game-page__title {
+		font-size: 17px;
+		letter-spacing: 0.5px;
+	}
+
+	.game-page__actions {
+		gap: 6px;
+	}
+
+	.game-page__body {
+		display: flex;
+		flex-direction: column;
+		padding: 8px;
+		gap: 0;
+		overflow: hidden;
+	}
+
+	// Hide all panels; only the active one is shown
+	.game-page__panel {
+		display: none;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.game-page__panel--active {
+		display: flex;
+		flex-direction: column;
+	}
+
+	// Info panel: program on top, results below
+	.game-page__panel--info.game-page__panel--active {
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	// Tab bar
+	.game-page__tab-bar {
+		display: flex;
+		flex-shrink: 0;
+		border-top: 2px solid #e0e0e0;
+		background: #fff;
+	}
+
+	.game-page__tab {
+		flex: 1;
+		padding: 11px 6px;
+		border: none;
+		border-top: 3px solid transparent;
+		background: none;
+		font-size: 12px;
+		font-weight: 700;
+		color: #888;
+		cursor: pointer;
+		text-transform: uppercase;
+		letter-spacing: 0.8px;
+		transition: color 0.15s, border-color 0.15s, background 0.15s;
+	}
+
+	.game-page__tab--active {
+		color: #e74c3c;
+		border-top-color: #e74c3c;
+		background: #fff8f8;
+	}
 }
 </style>

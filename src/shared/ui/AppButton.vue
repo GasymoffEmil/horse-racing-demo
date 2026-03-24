@@ -69,4 +69,11 @@ export default defineComponent({
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+@media (max-width: 767px) {
+	.app-button {
+		padding: 8px 14px;
+		font-size: 12px;
+	}
+}
 </style>

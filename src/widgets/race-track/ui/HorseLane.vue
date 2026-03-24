@@ -5,7 +5,7 @@
 			<div class="horse-lane__horse" :style="{ left: horseLeftPercent }">
 				<HorseIcon :color="horse.color" :size="66" :animated="isRunning && progress < 100" />
 			</div>
-			<div class="horse-lane__finish-line" />
+			<div class="horse-lane__finish-line" ></div>
 		</div>
 	</div>
 </template>
