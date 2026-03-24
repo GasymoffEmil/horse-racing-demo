@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest --config jest.config.cjs"
   },
   "dependencies": {
     "vue": "^3.5.30",
@@ -21,11 +22,14 @@
     "Safari >= 12"
   ],
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^24.12.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.0",
     "autoprefixer": "^10.4.27",
+    "jest": "^29.7.0",
     "sass": "^1.98.0",
+    "ts-jest": "^29.4.6",
     "typescript": "~5.9.3",
     "vite": "^8.0.1",
     "vue-tsc": "^3.2.5"
