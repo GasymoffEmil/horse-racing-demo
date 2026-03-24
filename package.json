@@ -13,10 +13,18 @@
     "vue3-lottie": "^3.3.1",
     "vuex": "^4.0.2"
   },
+  "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "not dead",
+    "iOS >= 12",
+    "Safari >= 12"
+  ],
   "devDependencies": {
     "@types/node": "^24.12.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/tsconfig": "^0.9.0",
+    "autoprefixer": "^10.4.27",
     "sass": "^1.98.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.1",
