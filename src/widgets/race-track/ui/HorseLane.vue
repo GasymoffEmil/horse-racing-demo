@@ -3,7 +3,7 @@
 		<div class="horse-lane__number">{{ laneNumber }}</div>
 		<div class="horse-lane__track" ref="track">
 			<div class="horse-lane__horse" :style="{ left: horseLeftPercent }">
-				<HorseIcon :color="horse.color" :size="44" :animated="isRunning && progress < 100" />
+				<HorseIcon :color="horse.color" :size="66" :animated="isRunning && progress < 100" />
 			</div>
 			<div class="horse-lane__finish-line" />
 		</div>
