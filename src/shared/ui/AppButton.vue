@@ -24,7 +24,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .app-button {
 	padding: 10px 20px;
 	font-size: 14px;

@@ -47,7 +47,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .race-track {
 	background: #fff;
 	border: 1px solid #ddd;

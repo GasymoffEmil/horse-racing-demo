@@ -47,7 +47,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .horse-lane {
 	display: flex;
 	align-items: center;

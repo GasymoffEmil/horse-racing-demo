@@ -38,7 +38,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .horse-list {
 	background: #fff;
 	border: 2px solid #e8a838;

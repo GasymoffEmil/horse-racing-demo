@@ -55,7 +55,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .horse-icon {
 	display: block;
 }
