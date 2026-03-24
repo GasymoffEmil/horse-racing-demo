@@ -8,9 +8,11 @@ A horse racing simulation game (SPA). Users generate a program of 20 horses acro
 
 - **Vue 3** + **TypeScript** (strict mode)
 - **Vuex 4** — namespaced modules
-- **Vite** — dev server and build tool
+- **Vite 8** — dev server and build tool
 - **vue3-lottie** — Lottie animation for horse sprites
 - **SCSS** — global styles + scoped component styles
+- **PostCSS + autoprefixer** — vendor prefixes added automatically on build
+- **Jest 29 + ts-jest** — unit testing
 
 ## Scripts
 
@@ -18,6 +20,7 @@ A horse racing simulation game (SPA). Users generate a program of 20 horses acro
 npm run dev       # start dev server
 npm run build     # type-check + build for production
 npm run preview   # preview production build
+npm test          # run all Jest unit tests
 ```
 
 ## Architecture — Feature-Sliced Design (FSD)
@@ -186,11 +189,9 @@ pickRandom<T>(array, count): T[]  // shuffle + slice
 | `RaceProgramWidget` | `widgets/race-program` | All 6 rounds with horse lineups; highlights active round |
 | `RaceResultsWidget` | `widgets/race-results` | Completed round standings; highlights winner |
 | `RaceTrackWidget` | `widgets/race-track` | Race visualization; renders one `HorseLane` per horse |
-| `HorseLane` | `widgets/race-track/ui` | Single lane: animated `HorseIcon` sliding left-to-right |
+| `HorseLane` | `widgets/race-track/ui` | Single lane: Lottie `HorseIcon` sliding left-to-right |
 
-**Layout (GamePage):** CSS grid — `220px (horse list) | 1fr (track) | 380px (program + results)`
-
-**Track positioning:** Horse left offset = `(progress / 100) × 90%`. Last 6% reserved for the finish line. Smooth movement via `transition: left 0.1s linear`.
+**Track positioning:** Horse `left` = `progress%` (0–100%). Finish line pinned to `right: 0` of the track. Movement via `transition: left 0.1s linear`. Horse size is `90px` (defined as `horseSize` data in `HorseLane`). A spacer div with `width: horseSize` is appended after the track area.
 
 **Control button states:** Start → Pause → Resume → Restart (based on `isRunning` / `isPaused` / `isFinished`).
 
@@ -201,10 +202,64 @@ pickRandom<T>(array, count): T[]  // shuffle + slice
 Uses `vue3-lottie` to play `assets/running_horse.json`.
 
 - **Dynamic recoloring:** `recolorAnimation()` deep-clones the Lottie JSON and replaces all non-white fill colors (`ty === 'fl'`) with the horse's hex color converted to normalized `[r, g, b, a]`. White fills (eye whites) are preserved.
-- **Direction:** `scaleX(-1)` CSS transform mirrors the animation so the horse faces right.
+- **Direction:** `scaleX(-1)` CSS transform mirrors the animation so the horse faces right (left-to-right).
 - **Play/Pause:** controlled via `:pause-animation="!animated"`.
 
 Props: `color: string`, `size: number` (default 48), `animated: boolean`.
+
+---
+
+## Responsive Layout (GamePage)
+
+Three breakpoints:
+
+| Breakpoint | Layout |
+|---|---|
+| Desktop ≥ 1024px | CSS grid `220px 1fr 380px` — horse list \| track \| program+results |
+| Tablet 768–1023px | CSS grid `200px 1fr`, rows `1fr 210px` — horse list spans full height left; track top-right; program+results side-by-side bottom-right |
+| Mobile < 768px | Flex column + bottom tab bar (`Race` / `Horses` / `Info`) — only one panel visible at a time |
+
+**Mobile tab navigation:** `activeTab: 'track' | 'horses' | 'info'` data property on `GamePage`. Active panel gets class `game-page__panel--active`; all others are `display: none`.
+
+**Height unit:** `height: 100dvh` — uses dynamic viewport height to avoid mobile browser chrome overlap.
+
+---
+
+## Cross-Browser
+
+`autoprefixer` is configured as a PostCSS plugin in `vite.config.ts` (`css.postcss.plugins`). It reads the `browserslist` field in `package.json`:
+
+```json
+"> 0.5%, last 2 versions, not dead, iOS >= 12, Safari >= 12"
+```
+
+Vendor prefixes (`-webkit-`, etc.) are added automatically at build time — no manual prefixing needed.
+
+---
+
+## Testing
+
+**Runner:** Jest 29 + ts-jest 29
+**Config:** `jest.config.cjs` (`.cjs` extension required because `package.json` has `"type": "module"`)
+**Command:** `npm test`
+
+### Jest config highlights
+- `testEnvironment: node`
+- `transform`: `ts-jest` with inline tsconfig (`module: CommonJS`, `baseUrl: .`, `paths: { @/*: [src/*] }`)
+- `moduleNameMapper`: `^@/(.*)$` → `<rootDir>/src/$1`
+- `testMatch`: `**/__tests__/**/*.spec.ts`
+
+### Test suites (64 tests total)
+
+| Suite | Location | Covers |
+|---|---|---|
+| `random.spec.ts` | `shared/lib/__tests__` | `randomInt`, `shuffle`, `pickRandom` |
+| `horseFactory.spec.ts` | `features/generate-horses/lib/__tests__` | `generateHorses` count, ids, names, colors, condition range |
+| `scheduleFactory.spec.ts` | `features/generate-schedule/lib/__tests__` | `generateSchedule` count, distances, horse count, no duplicates |
+| `raceEngine.spec.ts` | `features/race-control/lib/__tests__` | `run`, `stop`, tick callbacks, standings order — uses `jest.useFakeTimers()` |
+| `horses/store.spec.ts` | `features/generate-horses/model/__tests__` | state, mutations, getters, `generate` action |
+| `schedule/store.spec.ts` | `features/generate-schedule/model/__tests__` | state, mutations, getters, `generate` action |
+| `raceControl/store.spec.ts` | `features/race-control/model/__tests__` | state, all mutations, all getters, `pauseRace`/`resetRace`/`resumeRace` actions |
 
 ---
 
@@ -223,3 +278,4 @@ Props: `color: string`, `size: number` (default 48), `animated: boolean`.
 - **RaceEngine** — single instance, callback-driven, Promise-wrapped per round in the store
 - **Lottie recoloring** — recursive JSON clone, normalised RGB replacement, white-fill guard
 - **progressMap getter** — converts `HorseProgress[]` to `Map<horseId, progress>` for O(1) lookups in templates
+- **Mobile tab nav** — CSS `display: none` + `activeTab` data drives single-panel mobile view
