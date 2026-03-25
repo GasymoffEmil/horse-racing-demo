@@ -21,7 +21,7 @@
 						<tr v-for="(horse, index) in round.horses" :key="horse.id">
 							<td>{{ index + 1 }}</td>
 							<td>
-								<span class="race-program__dot" :style="{ backgroundColor: horse.color }" />
+								<span class="race-program__dot" :style="{ backgroundColor: horse.color }"></span>
 								{{ horse.name }}
 							</td>
 						</tr>

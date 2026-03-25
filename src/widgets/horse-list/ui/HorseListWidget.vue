@@ -15,7 +15,7 @@
 						<td>{{ horse.name }}</td>
 						<td>{{ horse.condition }}</td>
 						<td>
-							<span class="horse-list__color-dot" :style="{ backgroundColor: horse.color }" />
+							<span class="horse-list__color-dot" :style="{ backgroundColor: horse.color }"></span>
 						</td>
 					</tr>
 				</tbody>

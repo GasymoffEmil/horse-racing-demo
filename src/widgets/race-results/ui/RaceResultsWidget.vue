@@ -21,7 +21,7 @@
 							:class="{ 'race-results__row--winner': standing.position === 1 }">
 							<td>{{ standing.position }}</td>
 							<td>
-								<span class="race-results__dot" :style="{ backgroundColor: standing.horse.color }" />
+								<span class="race-results__dot" :style="{ backgroundColor: standing.horse.color }"></span>
 								{{ standing.horse.name }}
 							</td>
 						</tr>
