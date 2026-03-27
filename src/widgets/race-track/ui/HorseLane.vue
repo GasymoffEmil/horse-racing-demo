@@ -2,7 +2,7 @@
 	<div class="horse-lane">
 		<div class="horse-lane__number">{{ laneNumber }}</div>
 		<div class="horse-lane__track" ref="track">
-			<div class="horse-lane__horse" :style="{ transform: horseTransform }">
+			<div class="horse-lane__horse" :style="{ transform: horseTransform, transition: isTransitioning ? 'transform 0.1s linear' : 'none' }">
 				<HorseIcon :color="horse.color" :size="horseSize" :animated="isRunning && progress < 100" />
 			</div>
 			<div class="horse-lane__finish-line" ></div>
@@ -25,6 +25,7 @@ export default defineComponent({
 			horseSize: 90, // Horse Size in pixels
 			trackWidth: 0,
 			resizeObserver: null as ResizeObserver | null,
+			isTransitioning: true,
 		}
 	},
 	props: {
@@ -49,6 +50,18 @@ export default defineComponent({
 		horseTransform(): string {
 			const px = (this.trackWidth * this.progress) / 100
 			return `translateY(-50%) translateX(${px}px)`
+		},
+	},
+	watch: {
+		progress(newVal: number, oldVal: number) {
+			if (newVal < oldVal) {
+				// Progress decreased (round reset) — snap to new position without animation,
+				// then re-enable the transition for subsequent forward movement.
+				this.isTransitioning = false
+				this.$nextTick(() => {
+					this.isTransitioning = true
+				})
+			}
 		},
 	},
 	mounted() {
@@ -103,7 +116,6 @@ export default defineComponent({
 	position: absolute;
 	top: 50%;
 	left: 0;
-	transition: transform 0.1s linear;
 	z-index: 2;
 }
 
