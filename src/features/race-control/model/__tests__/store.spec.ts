@@ -131,9 +131,10 @@ describe('raceControl store — actions', () => {
 		expect(commit).toHaveBeenCalledWith('RESET')
 	})
 
-	it('resumeRace dispatches startRace', () => {
-		const dispatch = jest.fn()
-		;(raceControlModule.actions!.resumeRace as Function)({ dispatch })
-		expect(dispatch).toHaveBeenCalledWith('startRace')
+	it('resumeRace commits SET_RUNNING(true) and SET_PAUSED(false)', () => {
+		const commit = jest.fn()
+		;(raceControlModule.actions!.resumeRace as Function)({ commit })
+		expect(commit).toHaveBeenCalledWith('SET_RUNNING', true)
+		expect(commit).toHaveBeenCalledWith('SET_PAUSED', false)
 	})
 })

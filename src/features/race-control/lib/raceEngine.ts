@@ -5,6 +5,7 @@ import {
 	BASE_SPEED,
 	CONDITION_WEIGHT,
 	RANDOM_WEIGHT,
+	BASE_DISTANCE,
 } from '@/shared/constants/race'
 
 type OnTickCallback = (progress: HorseProgress[]) => void
@@ -15,26 +16,76 @@ export class RaceEngine {
 	private progress: Map<number, number> = new Map()
 	private finishTimes: Map<number, number> = new Map()
 	private tick = 0
+	private horses: Horse[] = []
+	private distance = BASE_DISTANCE
+	private onTick: OnTickCallback | null = null
+	private onFinish: OnFinishCallback | null = null
 
 	run(
 		horses: Horse[],
+		distance: number,
 		onTick: OnTickCallback,
 		onFinish: OnFinishCallback,
 	): void {
-		this.reset()
+		this.stop()
+		this.horses = horses
+		this.distance = distance
+		this.onTick = onTick
+		this.onFinish = onFinish
 		horses.forEach((h) => this.progress.set(h.id, 0))
+		this.startInterval()
+	}
 
+	/**
+	 * Stops the interval but preserves all race state (progress, tick, callbacks).
+	 * Call resume() to continue from where the race left off.
+	 */
+	pause(): void {
+		if (this.intervalId !== null) {
+			clearInterval(this.intervalId)
+			this.intervalId = null
+		}
+	}
+
+	/**
+	 * Restarts the interval after a pause(), continuing from the saved state.
+	 * No-op if the engine is already running or has no active race.
+	 */
+	resume(): void {
+		if (this.intervalId === null && this.horses.length > 0 && this.onTick !== null && this.onFinish !== null) {
+			this.startInterval()
+		}
+	}
+
+	/**
+	 * Fully resets the engine — stops the interval and clears all state.
+	 */
+	stop(): void {
+		this.pause()
+		this.progress.clear()
+		this.finishTimes.clear()
+		this.tick = 0
+		this.horses = []
+		this.distance = BASE_DISTANCE
+		this.onTick = null
+		this.onFinish = null
+	}
+
+	private startInterval(): void {
 		this.intervalId = setInterval(() => {
 			this.tick++
 
-			horses.forEach((horse) => {
+			this.horses.forEach((horse) => {
 				const current = this.progress.get(horse.id) ?? 0
 				if (current >= 100) return
 
+				// Scale speed by distance so longer rounds take proportionally more time.
+				// At BASE_DISTANCE (1200 m) the formula is unchanged from the original.
 				const speed =
-					BASE_SPEED +
-					horse.condition * CONDITION_WEIGHT +
-					Math.random() * RANDOM_WEIGHT * 100
+					(BASE_SPEED +
+						horse.condition * CONDITION_WEIGHT +
+						Math.random() * RANDOM_WEIGHT * 100) *
+					(BASE_DISTANCE / this.distance)
 
 				const next = Math.min(100, current + speed)
 				this.progress.set(horse.id, next)
@@ -44,34 +95,21 @@ export class RaceEngine {
 				}
 			})
 
-			const snapshot: HorseProgress[] = horses.map((h) => ({
+			const snapshot: HorseProgress[] = this.horses.map((h) => ({
 				horseId: h.id,
 				progress: this.progress.get(h.id) ?? 0,
 			}))
 
-			onTick(snapshot)
+			this.onTick!(snapshot)
 
-			const allFinished = horses.every((h) => (this.progress.get(h.id) ?? 0) >= 100)
+			const allFinished = this.horses.every((h) => (this.progress.get(h.id) ?? 0) >= 100)
 			if (allFinished) {
-				this.stop()
-				const standings = this.buildStandings(horses)
+				const standings = this.buildStandings(this.horses)
+				const onFinish = this.onFinish!
+				this.stop() // full reset so a stale resume() call cannot restart a finished race
 				onFinish(standings)
 			}
 		}, RACE_TICK_INTERVAL_MS)
-	}
-
-	stop(): void {
-		if (this.intervalId !== null) {
-			clearInterval(this.intervalId)
-			this.intervalId = null
-		}
-	}
-
-	private reset(): void {
-		this.stop()
-		this.progress.clear()
-		this.finishTimes.clear()
-		this.tick = 0
 	}
 
 	private buildStandings(horses: Horse[]): RoundStanding[] {

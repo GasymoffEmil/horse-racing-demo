@@ -31,3 +31,4 @@ export const RACE_TICK_INTERVAL_MS = 100
 export const BASE_SPEED = 0.8
 export const CONDITION_WEIGHT = 0.03
 export const RANDOM_WEIGHT = 0.02
+export const BASE_DISTANCE = ROUND_DISTANCES[1] // reference distance (metres) at which speed formula runs unscaled

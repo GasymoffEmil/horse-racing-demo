@@ -82,13 +82,15 @@ export const raceControlModule: Module<RaceControlState, RootState> = {
 		},
 
 		pauseRace({ commit }) {
-			engine.stop()
+			engine.pause() // stop interval but preserve progress — resume() will continue from here
 			commit('SET_PAUSED', true)
 			commit('SET_RUNNING', false)
 		},
 
-		resumeRace({ dispatch }) {
-			dispatch('startRace')
+		resumeRace({ commit }) {
+			commit('SET_RUNNING', true)
+			commit('SET_PAUSED', false)
+			engine.resume() // restart interval from saved state; resolves the pending runRound Promise
 		},
 
 		resetRace({ commit }) {
@@ -116,6 +118,7 @@ function runRound(round: Round, context: RaceContext): Promise<void> {
 	return new Promise((resolve) => {
 		engine.run(
 			round.horses,
+			round.distance,
 			(progress) => {
 				commit('SET_PROGRESS', progress)
 			},

@@ -2,7 +2,7 @@
 	<div class="horse-lane">
 		<div class="horse-lane__number">{{ laneNumber }}</div>
 		<div class="horse-lane__track" ref="track">
-			<div class="horse-lane__horse" :style="{ left: horseLeftPercent }">
+			<div class="horse-lane__horse" :style="{ transform: horseTransform }">
 				<HorseIcon :color="horse.color" :size="horseSize" :animated="isRunning && progress < 100" />
 			</div>
 			<div class="horse-lane__finish-line" ></div>
@@ -23,6 +23,8 @@ export default defineComponent({
 	data() {
 		return {
 			horseSize: 90, // Horse Size in pixels
+			trackWidth: 0,
+			resizeObserver: null as ResizeObserver | null,
 		}
 	},
 	props: {
@@ -44,9 +46,21 @@ export default defineComponent({
 		},
 	},
 	computed: {
-		horseLeftPercent(): string {
-			return `${this.progress}%`
+		horseTransform(): string {
+			const px = (this.trackWidth * this.progress) / 100
+			return `translateY(-50%) translateX(${px}px)`
 		},
+	},
+	mounted() {
+		const trackEl = this.$refs.track as HTMLElement
+		this.trackWidth = trackEl.offsetWidth
+		this.resizeObserver = new ResizeObserver((entries) => {
+			this.trackWidth = entries[0].contentRect.width
+		})
+		this.resizeObserver.observe(trackEl)
+	},
+	beforeUnmount() {
+		this.resizeObserver?.disconnect()
 	},
 })
 </script>
@@ -88,8 +102,8 @@ export default defineComponent({
 .horse-lane__horse {
 	position: absolute;
 	top: 50%;
-	transform: translateY(-50%);
-	transition: left 0.1s linear;
+	left: 0;
+	transition: transform 0.1s linear;
 	z-index: 2;
 }
 

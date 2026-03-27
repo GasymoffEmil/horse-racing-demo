@@ -108,6 +108,9 @@ export default defineComponent({
 			return 'Start'
 		},
 	},
+	beforeUnmount() {
+		this.$store.dispatch('raceControl/resetRace')
+	},
 	methods: {
 		onGenerate() {
 			this.$store.dispatch('horses/generate')
