@@ -126,6 +126,10 @@ Getters: isRunning, isPaused, isFinished, currentRoundIndex,
 
 `startRace` iterates rounds from `currentRoundIndex`, calling `runRound()` (a Promise wrapper around `RaceEngine`) sequentially. Breaks early if `isPaused` is set.
 
+**Pause/resume flow:**
+- `pauseRace` calls `engine.pause()` — stops the interval but the `runRound` Promise stays pending.
+- `resumeRace` commits `SET_RUNNING(true)` / `SET_PAUSED(false)` and calls `engine.resume()` — restarts the interval with the same callbacks, which eventually resolves the pending Promise and allows the `startRace` loop to continue naturally. Does NOT re-dispatch `startRace`.
+
 ---
 
 ## RaceEngine (`features/race-control/lib/raceEngine.ts`)
@@ -136,20 +140,28 @@ Interval-based simulation (100 ms ticks). Callback-driven API — does not expos
 class RaceEngine {
   run(
     horses: Horse[],
+    distance: number,
     onTick: (progress: HorseProgress[]) => void,
     onFinish: (standings: RoundStanding[]) => void
   ): void
 
-  stop(): void  // clears the interval
+  pause(): void   // stops interval, preserves all internal state
+  resume(): void  // restarts interval from saved state; no-op if already running or no active race
+  stop(): void    // stops interval and fully resets all state (used by resetRace and internally on finish)
 }
 ```
 
 **Speed formula per tick:**
 ```
-speed = BASE_SPEED + (horse.condition × CONDITION_WEIGHT) + (Math.random() × RANDOM_WEIGHT × 100)
+speed = (BASE_SPEED + horse.condition × CONDITION_WEIGHT + Math.random() × RANDOM_WEIGHT × 100)
+        × (BASE_DISTANCE / distance)
 ```
 
-A single global engine instance is reused across rounds; `reset()` is called internally before each `run()`.
+Distance scaling ensures longer rounds take proportionally more ticks than the base 1200 m round. At `distance = BASE_DISTANCE` the formula is unchanged from the baseline.
+
+A single global engine instance is reused across rounds. `run()` calls `stop()` internally to fully reset before starting a new race.
+
+When a race finishes, the engine calls `stop()` internally before firing `onFinish` — this prevents a stale `resume()` call from restarting a finished race.
 
 ---
 
@@ -166,6 +178,7 @@ RACE_TICK_INTERVAL_MS = 100
 BASE_SPEED = 0.8
 CONDITION_WEIGHT = 0.03
 RANDOM_WEIGHT = 0.02
+BASE_DISTANCE = ROUND_DISTANCES[1]  // 1200 m — reference distance at which speed formula runs unscaled
 
 HORSE_NAMES: string[]   // 20 names
 HORSE_COLORS: string[]  // 20 hex colours, one per horse
@@ -191,7 +204,9 @@ pickRandom<T>(array, count): T[]  // shuffle + slice
 | `RaceTrackWidget` | `widgets/race-track` | Race visualization; renders one `HorseLane` per horse |
 | `HorseLane` | `widgets/race-track/ui` | Single lane: Lottie `HorseIcon` sliding left-to-right |
 
-**Track positioning:** Horse `left` = `progress%` (0–100%). Finish line pinned to `right: 0` of the track. Movement via `transition: left 0.1s linear`. Horse size is `90px` (defined as `horseSize` data in `HorseLane`). A spacer div with `width: horseSize` is appended after the track area.
+**Track positioning:** Horse position is driven by `transform: translateY(-50%) translateX(${px}px)` where `px = trackWidth × progress / 100`. `trackWidth` is measured from the `.horse-lane__track` element via `ResizeObserver` (mounted/beforeUnmount lifecycle). The CSS `transition` property is controlled inline: `transform 0.1s linear` during forward movement, `none` when progress decreases (round reset / new round start) to snap horses to the start line without animation. Finish line pinned to `right: 0` of the track. Horse size is `90px` (`horseSize` data). A spacer div with `width: horseSize` is appended after the track area.
+
+**Snap-to-start on reset:** `HorseLane` watches the `progress` prop. When `newVal < oldVal`, `isTransitioning` is set to `false` for one Vue tick (`$nextTick` re-enables it). This prevents the backward animation when a new round begins.
 
 **Control button states:** Start → Pause → Resume → Restart (based on `isRunning` / `isPaused` / `isFinished`).
 
@@ -223,6 +238,8 @@ Three breakpoints:
 
 **Height unit:** `height: 100dvh` — uses dynamic viewport height to avoid mobile browser chrome overlap.
 
+**Lifecycle cleanup:** `GamePage` dispatches `raceControl/resetRace` in `beforeUnmount()` to stop the engine interval if the component tree unmounts while a race is running.
+
 ---
 
 ## Cross-Browser
@@ -249,14 +266,14 @@ Vendor prefixes (`-webkit-`, etc.) are added automatically at build time — no 
 - `moduleNameMapper`: `^@/(.*)$` → `<rootDir>/src/$1`
 - `testMatch`: `**/__tests__/**/*.spec.ts`
 
-### Test suites (64 tests total)
+### Test suites (67 tests total)
 
 | Suite | Location | Covers |
 |---|---|---|
 | `random.spec.ts` | `shared/lib/__tests__` | `randomInt`, `shuffle`, `pickRandom` |
 | `horseFactory.spec.ts` | `features/generate-horses/lib/__tests__` | `generateHorses` count, ids, names, colors, condition range |
 | `scheduleFactory.spec.ts` | `features/generate-schedule/lib/__tests__` | `generateSchedule` count, distances, horse count, no duplicates |
-| `raceEngine.spec.ts` | `features/race-control/lib/__tests__` | `run`, `stop`, tick callbacks, standings order — uses `jest.useFakeTimers()` |
+| `raceEngine.spec.ts` | `features/race-control/lib/__tests__` | `run` (with distance), `stop`, `pause`/`resume`, tick callbacks, standings order, distance scaling — uses `jest.useFakeTimers()` |
 | `horses/store.spec.ts` | `features/generate-horses/model/__tests__` | state, mutations, getters, `generate` action |
 | `schedule/store.spec.ts` | `features/generate-schedule/model/__tests__` | state, mutations, getters, `generate` action |
 | `raceControl/store.spec.ts` | `features/race-control/model/__tests__` | state, all mutations, all getters, `pauseRace`/`resetRace`/`resumeRace` actions |
@@ -275,7 +292,8 @@ Vendor prefixes (`-webkit-`, etc.) are added automatically at build time — no 
 ## Key Patterns
 
 - **Factory pattern** — `horseFactory.ts` (generateHorses), `scheduleFactory.ts` (generateSchedule)
-- **RaceEngine** — single instance, callback-driven, Promise-wrapped per round in the store
+- **RaceEngine** — single instance, callback-driven, Promise-wrapped per round in the store; supports `pause()`/`resume()` without resetting internal progress state
 - **Lottie recoloring** — recursive JSON clone, normalised RGB replacement, white-fill guard
 - **progressMap getter** — converts `HorseProgress[]` to `Map<horseId, progress>` for O(1) lookups in templates
 - **Mobile tab nav** — CSS `display: none` + `activeTab` data drives single-panel mobile view
+- **HorseLane snap-to-start** — `isTransitioning` flag + `progress` watcher disables CSS transition for one tick when progress decreases, preventing backward animation on round transitions
